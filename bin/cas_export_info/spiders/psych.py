@@ -25,30 +25,12 @@ class psychSpider(spiders.MySpider):
     """
     name = 'psych'
     start_urls = ['http://www.psych.cas.cn/yjdw/kezuoyjy/']
-    field_map = {
-    '姓名': 'name',
-    '性别': 'gender',
-    '职称': 'title',
-    '学历': 'education',
-    '电子邮件': 'email',
-    '邮政编码': 'post_code',
-    '通讯地址': 'address',
-    '电话': 'phone',
-    '教育和工作经历': 'resume',
-    '简历': 'resume',
-    '研究方向': 'research_area',
-    '专家类别': 'expert_category',
-    '研究兴趣与领域': 'research_field',
-    '研究领域': 'research_field',
-    '职务': 'office',
-    '参与的科研项目': 'research_projects',
-    '承担科研项目情况': 'research_projects',
-    '发表文章': 'works',
-    '代表论著': 'works'
-    }
     parse_xpath = './/td[@width="194"]//a'
-    need_relative_path = False
+    expert_list_frame_xpath = True
+    expert_list_xpath_list = [['.//td[@height="26"]//a', './/a'], ['.//td[@style="background: #f8f8f8;"]//a', './/a']]
+    #analy_data_conf = [[2, '//table[@class="hh14"]//tr', '//table[@class="hh14"][position()>2]'], [2, '', '']]
 
+    '''
     def expert_list_parse(self, response):
         """
         """
@@ -72,21 +54,24 @@ class psychSpider(spiders.MySpider):
             url = urlparse.urljoin(response.url, href)
             yield Request(url, callback=self.expert_list_parse)
         
+    '''
     def analy(self, response):
         """
         """
-        res = {'url': response.url}
+        res = {'url': (response.url, '')}
         if not '助研个人网页' in response.body:
             info_list_1 = response.selector.xpath('//table[@class="hh14"]//tr')
+            if len(info_list_1) == 0:
+                return None, None
             name = self.str2dom(info_list_1[0].extract()).text
-            res[u'姓名'] = name
+            res[u'姓名'] = (name, '')
             for s in info_list_1[1:]:
                 text = self.str2dom(s.extract()).text
                 ar = text.split(':')
                 if len(ar) == 2:
                     key = ar[0].replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
                     value = ar[1]
-                    res[key] = value
+                    res[key] = (value, '')
             info_list_2 = response.selector.xpath('//table[@class="hh14"][position()>2]')
             for sub_info_list in info_list_2:
                 l = sub_info_list.xpath('.//tr')
@@ -99,7 +84,7 @@ class psychSpider(spiders.MySpider):
                 if len(text_list) == 2:
                     key = text_list[0].replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
                     value =  text_list[1]
-                    res[key] = value
+                    res[key] = (value, '')
         else:
             info_list_1 = response.selector.xpath('//table[@class="hh14"]//tr')
             for sub_info in info_list_1:
@@ -112,15 +97,17 @@ class psychSpider(spiders.MySpider):
                         key = k_dom.text.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
                         v_dom = self.str2dom(l[i + 1].extract())
                         value = v_dom.text.strip()
-                        res[key] = value
+                        res[key] = (value, '')
             info_list_2 = response.selector.xpath('//table[@class="hh14"]/tbody/tr/td/span/font/p')
             for sub_info_list in info_list_2:
+                if len(sub_info_list.xpath('.//strong')) == 0:
+                    continue
                 title = self.str2dom(sub_info_list.xpath('.//strong').extract()[0]).text
                 text = self.str2dom(sub_info_list.extract()).text
                 text = text.replace(title, '')
                 text_list = []
                 title = title.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
-                res[title] = text
+                res[title] = (text, '')
             #for i in l:
             #    dom = self.str2dom(i.extract())
             #    text = dom.text.strip()
@@ -131,4 +118,4 @@ class psychSpider(spiders.MySpider):
             #    value =  text_list[1]
             #    res[key] = value
         logging.error('get json\t' + json.dumps(res, ensure_ascii=False).encode('utf8'))
-        return res
+        return res, None

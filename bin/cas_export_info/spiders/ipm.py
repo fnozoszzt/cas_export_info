@@ -19,12 +19,11 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-class tibSpider(spiders.MySpider):
+class ipmSpider(spiders.MySpider):
     """
     """
-    name = 'tib'
-    start_urls = ['http://www.tib.cas.cn/kydw/fyjy/']
-    parse_xpath = './/div[@class="l2tm"]//a'
-    expert_list_xpath_list = [['.//table[@class="black_12"]//a', './/a']]
-    analy_data_conf = [[2, '//td[@height="188"]/table//tr', '//td[@height="420"]/table//table']]
-
+    name = 'ipm'
+    start_urls = ['http://www.casisd.cn/zkzj/tpzkzj/']
+    parse_xpath = './/ul[@class="temp01-wrap-Lmenu"]//a'
+    expert_list_xpath_list = [['//li[@class="col-md-2 col-sm-3 col-xs-4"]//a', './/a']]
+    analy_data_conf = [[1, './/li[@class="people-info col-md-4 col-sm-12 col-xs-12"]', 'strong', './/div[@class="col-md-12 tem01-people-content"]/ul', 'h4', 'li']]

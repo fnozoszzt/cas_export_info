@@ -1,0 +1,23 @@
+CREATE TABLE data(
+   institute text,
+   url text,
+   code text,
+   name text,
+   gender text,
+   expert_category text,
+   subject_category text,
+   office text,
+   title text,
+   education text,
+   address text,
+   post_code text,
+   phone text,
+   email text,
+   all_info text,
+   resume text,
+   research_field text,
+   research_area text,
+   works text,
+   research_projects text,
+   page text
+);

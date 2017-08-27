@@ -30,33 +30,12 @@ class ioaSpider(spiders.MySpider):
     'resume': 'resume'
     }
     parse_xpath = './/a[@class="b12"]'
-    need_relative_path = False
+    expert_list_xpath_list = [['.//table[@width="95"]//a', './/a'], ['.//*[@class="TRS_Editor"][1]//a', './/a']]
 
-    def expert_list_parse(self, response):
-        """
-        """
-        logger.debug('expert list page get reponse')
-        url = response.url
-        last_text = response.meta['text']
-        if u'院士' in last_text:
-            logger.debug('parse ys')
-            expert_list = response.selector.xpath('.//table[@width="95"]//a')
-            for expert in expert_list:
-                href = expert.xpath('@href').extract()[0]
-                url = urlparse.urljoin(response.url, href)
-                yield Request(url, callback=self.expert_info_parse)
-        else:
-            logger.debug('parse other')
-            expert_list = response.selector.xpath('.//*[@class="TRS_Editor"][1]//a')
-            for expert in expert_list:
-                href = expert.xpath('@href').extract()[0]
-                url = urlparse.urljoin(response.url, href)
-                yield Request(url, callback=self.expert_info_parse)
-        
     def analy(self, response):
         """
         """
-        res = {'url': response.url}
+        res = {'url': (response.url, None)}
         info_list_1 = response.selector.xpath('//tr[@height=41][1]')
         l = info_list_1.xpath('td')
         if len(l) % 2 == 0:
@@ -65,7 +44,7 @@ class ioaSpider(spiders.MySpider):
                 key = k_dom.text.replace(u'：', '').strip().replace(' ', '').replace(':', '')
                 v_dom = self.str2dom(l[i + 1].extract())
                 value = v_dom.text.strip()
-                res[key] = value
+                res[key] = (value, None)
         resume_list = response.selector.xpath('//tr[@height="40"]')
         resume = ""
         for sub_info_list in resume_list:
@@ -81,6 +60,6 @@ class ioaSpider(spiders.MySpider):
                 #value =  text_list[1]
                 #res[key] = value
                 resume += text_list[0] + ' - ' + text_list[1] + ' : ' + text_list[2] + ';'
-        res['resume'] = resume
+        res['resume'] = (resume, '')
         logging.error('get json\t' + json.dumps(res, ensure_ascii=False).encode('utf8'))
-        return res
+        return res, None
