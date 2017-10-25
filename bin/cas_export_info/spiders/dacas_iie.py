@@ -19,11 +19,11 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-class ioaSpider(spiders.MySpider):
+class dacas_iieSpider(spiders.MySpider):
     """
     声学研究所
     """
-    name = 'ioa'
+    name = 'dacas_iie'
     start_urls = ['http://www.ioa.cas.cn/rcjy/']
     parse_xpath = './/a[@class="b12"]'
     expert_list_xpath_list = [['.//table[@width="95"]//a', './/a'], ['.//*[@class="TRS_Editor"][1]//a', './/a']]

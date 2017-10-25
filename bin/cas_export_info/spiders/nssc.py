@@ -19,14 +19,14 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-class ioaSpider(spiders.MySpider):
+class nsscSpider(spiders.MySpider):
     """
     声学研究所
     """
-    name = 'ioa'
-    start_urls = ['http://www.ioa.cas.cn/rcjy/']
-    parse_xpath = './/a[@class="b12"]'
-    expert_list_xpath_list = [['.//table[@width="95"]//a', './/a'], ['.//*[@class="TRS_Editor"][1]//a', './/a']]
-    analy_data_conf = [[5, './/*[@id="zoom"]']]
+    name = 'nssc'
+    start_urls = ['http://www.nssc.cas.cn/rcdw2015/lyys2015/']
+    parse_xpath = './/ul[@id="erji-nav"]//a'
+    expert_list_xpath_list = [['.//ul[@class="erji-tupianlist"]//a', './/a']]
+    analy_data_conf = [[2, None, './/td[@height="420"]//table//table']]
 
 

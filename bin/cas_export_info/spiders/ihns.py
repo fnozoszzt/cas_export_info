@@ -19,14 +19,20 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-class ioaSpider(spiders.MySpider):
+class ihnsSpider(spiders.MySpider):
     """
     声学研究所
     """
-    name = 'ioa'
-    start_urls = ['http://www.ioa.cas.cn/rcjy/']
-    parse_xpath = './/a[@class="b12"]'
-    expert_list_xpath_list = [['.//table[@width="95"]//a', './/a'], ['.//*[@class="TRS_Editor"][1]//a', './/a']]
-    analy_data_conf = [[5, './/*[@id="zoom"]']]
+    name = 'ihns'
+    start_urls = ['http://www.ihns.cas.cn/yjdw_new/']
+    parse_xpath = './/ul[@class="chennal"]//a'
+    expert_list_xpath_list = [['.//table[@width="670"]//a', './/a']]
+    analy_data_conf = [[3, None, None, './/td[@width="730px"]', './/p', None, None, './/ul[@class="second_title"]']]
+    some_key = {
+        '研究方向': 'research_area',
+        '工作经历': 'resume',
+        '论著目录': 'works',
+        '联系方式': 'address',
+    }
 
 

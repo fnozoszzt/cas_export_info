@@ -19,14 +19,14 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-class ioaSpider(spiders.MySpider):
+class ibpSpider(spiders.MySpider):
     """
     声学研究所
     """
-    name = 'ioa'
-    start_urls = ['http://www.ioa.cas.cn/rcjy/']
-    parse_xpath = './/a[@class="b12"]'
-    expert_list_xpath_list = [['.//table[@width="95"]//a', './/a'], ['.//*[@class="TRS_Editor"][1]//a', './/a']]
-    analy_data_conf = [[5, './/*[@id="zoom"]']]
+    name = 'ibp'
+    start_urls = ['http://www.ibp.cas.cn/kydw/cjxz/']
+    parse_xpath = './/a[@class="white12"]'
+    expert_list_xpath_list = [['.//*[@class="TRS_Editor"]//a', './/a']]
+    analy_data_conf = [[5, './/*[@class="TRS_Editor"]']]
 
 

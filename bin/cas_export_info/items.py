@@ -11,10 +11,12 @@ import scrapy
 class CasExportInfoItem(scrapy.Item):
     # define the fields for your item here like:
 
-    # url
-    url = scrapy.Field()
     # 研究所
     institute = scrapy.Field()
+    # url
+    url = scrapy.Field()
+    # 单位代码
+    code = scrapy.Field()
     # 姓名
     name = scrapy.Field()
     # 性别
@@ -37,6 +39,8 @@ class CasExportInfoItem(scrapy.Item):
     phone = scrapy.Field()
     # 电子邮箱
     email = scrapy.Field()
+    # 全部简历信息
+    all_info = scrapy.Field()
     # 简历
     resume = scrapy.Field()
     # 研究领域
@@ -47,4 +51,6 @@ class CasExportInfoItem(scrapy.Item):
     works = scrapy.Field()
     # 承担科研项目情况
     research_projects = scrapy.Field()
+    # 网页
+    page = scrapy.Field()
 

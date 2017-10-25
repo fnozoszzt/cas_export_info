@@ -56,7 +56,9 @@ class MySpider(scrapy.Spider):
     '职称': 'title',
     '职务/职称': 'title',
     '学历': 'education',
+    '学历学位': 'education',
     '电子邮件': 'email',
+    '邮箱': 'email',
     '电子信箱': 'email',
     'email': 'email',
     'Email': 'email',
@@ -68,12 +70,14 @@ class MySpider(scrapy.Spider):
     '电话/传真': 'phone',
     '学科类别': 'subject_category',
     '联系电话': 'phone',
+    'phone': 'phone',
     '简历': 'resume',
     '简历介绍': 'resume',
     '个人简况': 'resume',
     'resume': 'resume',
     '教育和工作经历': 'resume',
     '研究方向': 'research_area',
+    '学术方向': 'research_area',
     '研究领域与研究方向': 'research_area',
     'research_area': 'research_area',
     '专家类别': 'expert_category',
@@ -88,6 +92,7 @@ class MySpider(scrapy.Spider):
     '承担科研项目': 'research_projects',
     '部分在研项目': 'research_projects',
     '代表论著': 'works',
+    '代表成果': 'works',
     '代表性著作': 'works',
     '部分代表性论著': 'works',
     '发表文章': 'works',
@@ -121,16 +126,16 @@ class MySpider(scrapy.Spider):
         return output
 
     def exec_js(self, page):
-        dom = etree.HTML(page)
+        dom = etree.HTML(page, parser=etree.HTMLParser(encoding='utf-8'))
         for xpath in self.expert_list_exex_js_xpath:
             item_list = dom.xpath(xpath)
             for s in item_list:
                 text = s.text
                 res = self.get_js_res(text)
                 s.text = ""#res.decode('utf8')
-                for ss in etree.HTML(res).find('body'):
+                for ss in etree.HTML(res, parser=etree.HTMLParser(encoding='utf-8')).find('body'):
                     s.getparent().append(ss)
-        return etree.tostring(dom)
+        return etree.tostring(dom, encoding='utf8')
 
 
     def expert_list_parse(self, response):
@@ -155,10 +160,10 @@ class MySpider(scrapy.Spider):
                 for expert in expert_list:
                     if len(expert.xpath('@href')) == 0:
                         continue
-                    href = str(expert.xpath('@href')[0])
+                    href = str(expert.xpath('@href')[0].encode('utf8'))
                     new_url = urlparse.urljoin(url, href)
                     num += 1
-                    yield Request(new_url, callback=self.expert_info_parse)
+                    yield Request(new_url, callback=self.expert_info_parse, meta={'expert_name': self.str2dom(etree.tostring(expert)).text.strip()})
                 if next_page_xpath:
                     next_page = dom.xpath(next_page_xpath)
                     for s in next_page:
@@ -271,12 +276,24 @@ class MySpider(scrapy.Spider):
 
     # type 4: http://sourcedb.igsnrr.cas.cn/zw/zjrck/200906/t20090626_1842553.html 
     # strong is key other is value
+
+    # type 5: http://sourcedb.niaot.cas.cn/zw/zjrc/200912/t20091207_2690960.html
+    # all text
+
+    # type 6: http://sourcedb.iee.cas.cn/cn/expert/201408/t20140804_4170688.html
+    # main info :    ":" split
+    # strong is key other is value
+
+    # type 7: http://www.csu.cas.cn/yjsjy/dsjs/201305/t20130525_3849375.html
+    # main info : table
+    # key has :
+
     analy_data_conf = []
 
         
     def analy(self, response):
         #res = {'url': response.url}
-        dom = etree.HTML(response.body)
+        dom = etree.HTML(response.body, parser=etree.HTMLParser(encoding='utf8'))
         res = {'url': (response.url, '')}
         for item in self.analy_data_conf:
             if len(item) >= 1:
@@ -289,6 +306,12 @@ class MySpider(scrapy.Spider):
                 res = self.analy_3(res, response, item, dom)
             if conf_type == 4:
                 res = self.analy_4(res, response, item, dom)
+            if conf_type == 5:
+                res = self.analy_5(res, response, item, dom)
+            if conf_type == 6:
+                res = self.analy_6(res, response, item, dom)
+            if conf_type == 7:
+                res = self.analy_7(res, response, item, dom)
 
         return res, dom
 
@@ -323,22 +346,23 @@ class MySpider(scrapy.Spider):
 
     def analy_2(self, res, response, item, dom):
         x1, x2 = item[1: 3]
-        info_list_1 = dom.xpath(x1)
-
-        all_info = ''
-        for sub_info in info_list_1:
-            l = sub_info.xpath('td')
-            if len(l) % 2 == 1:
-                l = l[:-1]
-            for i in range(0, len(l), 2):
-                k_dom = self.str2dom(etree.tostring(l[i]))
-                key = k_dom.text.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
-                v_dom = self.str2dom(etree.tostring(l[i + 1]))
-                value = v_dom.text.strip()
-                res[key] = (value, l[i])
-
-                all_info += key + '\n' + value + '\n\n'
-                res['all_info'] = (all_info, info_list_1)
+        if x1:
+            info_list_1 = dom.xpath(x1)
+            all_info = ''
+            for sub_info in info_list_1:
+                l = sub_info.xpath('td')
+                if len(l) % 2 == 1:
+                    l = l[:-1]
+                for i in range(0, len(l), 2):
+                    k_dom = self.str2dom(etree.tostring(l[i]))
+                    key = k_dom.text.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
+                    v_dom = self.str2dom(etree.tostring(l[i + 1]))
+                    value = v_dom.text.strip()
+                    res[key] = (value, l[i])
+                    all_info += key + '\n' + value + '\n\n'
+                    res['all_info'] = (all_info, info_list_1)
+        else:
+            res['name'] = (response.meta['expert_name'], None)
         if x2:
             all_info = ''
             info_list_2 = dom.xpath(x2)
@@ -364,61 +388,68 @@ class MySpider(scrapy.Spider):
 
     def analy_3(self, res, response, item, dom):
         x1, x2, x3, x4, x5, x6, x7 = item[1: 8]
-        info_list_1 = dom.xpath(x1)
-        for sub_info in info_list_1:
-            l = sub_info.xpath(x2)
-            if len(l) == 1:
-                k_dom = self.str2dom(etree.tostring(l[0]))
-                key = l[0].text
-                text_dom = self.str2dom(etree.tostring(sub_info))
-                text = text_dom.text.replace(key, '')
-                key = key.strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '').replace(u'：', '')
-                res[key] = (text, sub_info)
+        if x1:
+            info_list_1 = dom.xpath(x1)
+            for sub_info in info_list_1:
+                l = sub_info.xpath(x2)
+                if len(l) == 1:
+                    k_dom = self.str2dom(etree.tostring(l[0]))
+                    key = l[0].text
+                    text_dom = self.str2dom(etree.tostring(sub_info))
+                    text = text_dom.text.replace(key, '')
+                    key = key.strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '').replace(u'：', '')
+                    res[key] = (text, sub_info)
+
+
         info_list_2 = dom.xpath(x3)
-        res['all_info'] = (self.str2dom(etree.tostring(info_list_2[0])).text, info_list_2[0])
+        if len(info_list_2) > 0:
+            res['all_info'] = (self.str2dom(etree.tostring(info_list_2[0])).text, info_list_2[0])
+            key = None
+            value = ''
+            dom_list = []
+            for sub_info_list in info_list_2[0].xpath(x4):
+                dom2 = self.str2dom(etree.tostring(sub_info_list))
+                text = dom2.text.strip()
+                if len(text) > 0:
+                    flag = None
+                    for s in self.some_key:
+                        if s in text.encode('utf8'):
+                            flag = self.some_key[s]
+                    if flag is not None:
+                        if key is not None:
+                            res[key] = (value, dom_list)
+                        value = ''
+                        dom_list = []
+                        key = flag
+                        key = key.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
+                    else:
+                        value += text + '\n'
+                        dom_list.append(sub_info_list)
+            if key is not None:
+                res[key] = (value, dom_list)
 
-        key = None
-        value = ''
-        dom_list = []
-        for sub_info_list in info_list_2[0].xpath(x4):
-            dom2 = self.str2dom(etree.tostring(sub_info_list))
-            text = dom2.text.strip()
-            if len(text) > 0:
-                flag = None
-                for s in self.some_key:
-                    if s in text.encode('utf8'):
-                        flag = self.some_key[s]
-                if flag is not None:
-                    if key is not None:
-                        res[key] = (value, dom_list)
-                    value = ''
-                    dom_list = []
-                    key = flag
-                    key = key.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
-                else:
-                    value += text + '\n'
-                    dom_list.append(sub_info_list)
-
-        if key is not None:
-            res[key] = (value, dom_list)
-
-        dom_resume = dom.xpath(x6)
-        if len(dom_resume) == 1:
-            res['resume'] = (self.str2dom(etree.tostring(dom_resume[0])).text, dom_resume[0])
-        dom_name = dom.xpath(x7)
-        if len(dom_name) == 1:
-            res['name'] = (self.str2dom(etree.tostring(dom_name[0])).text, dom_name[0])
-        dom_info = dom.xpath(x5)
-        if len(dom_info) == 1:
-            text = self.str2dom(etree.tostring(dom_info[0])).text
-            if u'女' in text:
-                res['gender'] = (u'女', dom_info[0])
-            if u'男' in text:
-                res['gender'] = (u'男', dom_info[0])
-            if u'博士' in text:
-                res['education'] = (u'博士', dom_info[0])
-            if u'硕士' in text:
-                res['education'] = (u'硕士', dom_info[0])
+        if x6:
+            dom_resume = dom.xpath(x6)
+            if len(dom_resume) == 1:
+                res['resume'] = (self.str2dom(etree.tostring(dom_resume[0])).text, dom_resume[0])
+        if x7:
+            dom_name = dom.xpath(x7)
+            if len(dom_name) == 1:
+                res['name'] = (self.str2dom(etree.tostring(dom_name[0])).text, dom_name[0])
+        else:
+            res['name'] = (response.meta['expert_name'], None)
+        if x5:
+            dom_info = dom.xpath(x5)
+            if len(dom_info) == 1:
+                text = self.str2dom(etree.tostring(dom_info[0])).text
+                if u'女' in text:
+                    res['gender'] = (u'女', dom_info[0])
+                if u'男' in text:
+                    res['gender'] = (u'男', dom_info[0])
+                if u'博士' in text:
+                    res['education'] = (u'博士', dom_info[0])
+                if u'硕士' in text:
+                    res['education'] = (u'硕士', dom_info[0])
             
         res_output = {k: v[0] for k, v in res.iteritems()}
         logging.error('get json\t' + json.dumps(res_output, ensure_ascii=False).encode('utf8'))
@@ -483,6 +514,116 @@ class MySpider(scrapy.Spider):
         res['page'] = (response.body, dom)
         return res
 
+    def analy_5(self, res, response, item, dom):
+        x1 = item[1]
+        info_list_1 = dom.xpath(x1)
+        print info_list_1
+        if len(info_list_1) == 1:
+            res['resume'] =  (self.str2dom(etree.tostring(info_list_1[0])).text, info_list_1[0])
+            res['all_info'] =  (self.str2dom(etree.tostring(info_list_1[0])).text, info_list_1[0])
+
+        if 'page' in res:
+            del res['page']
+        res['name'] = (response.meta['expert_name'], None)
+            
+        res_output = {k: v[0] for k, v in res.iteritems()}
+        logging.error('get json\t' + json.dumps(res_output, ensure_ascii=False).encode('utf8'))
+        logging.error(json.dumps(list(res_output), ensure_ascii=False))
+        res['page'] = (response.body, dom)
+        return res
 
 
+    def analy_6(self, res, response, item, dom):
+        x1, x2, x3 = item[1: 4]
+        info_list_1 = dom.xpath(x1)
+        for sub_info in info_list_1:
+            print '[[[', sub_info, ']]]'
+            if type(sub_info) != etree._ElementStringResult and type(sub_info) != etree._ElementUnicodeResult:
+                text = self.str2dom(etree.tostring(sub_info)).text
+            else:
+                text = sub_info
+                res['name'] = (response.meta['expert_name'], None)
+            if u'：' in text:
+                key = text.split(u'：', 1)[0]
+                key = key.strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '').replace(u'：', '')
+                res[key] = (text.split(u'：', 1)[1], sub_info)
+        if x2:
+            info_list_2 = dom.xpath(x2)
+            res['all_info'] = (self.str2dom(etree.tostring(info_list_2[0])).text, info_list_2[0])
+            for sub_info_list in info_list_2:
+                l = sub_info_list.xpath(x3)
+                if len(l) == 0:
+                    continue
+                key = self.str2dom(etree.tostring(l[0])).text
+                dom2 = self.str2dom(etree.tostring(sub_info_list))
+                text = dom2.text
+                text = text.replace(key, '')
+                key = key.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
+                res[key] = (text, sub_info_list)
+            
+        res_output = {k: v[0] for k, v in res.iteritems()}
+        logging.error('get json\t' + json.dumps(res_output, ensure_ascii=False).encode('utf8'))
+        res['page'] = (response.body, dom)
+        return res
+
+    def analy_7_expansion(self, dom):
+        ans = []
+        for s in dom:
+            if type(s) == unicode or type(s) == bs4.element.NavigableString:
+                s = unicode(s.strip())
+                if u':' in s or u'：' in s:
+                    spl = re.split(u'：|:', s)
+                    if len(spl) == 2:
+                        ans.append([1, spl[0]])
+                        ans.append([0, spl[1]])
+                        continue
+                ans.append([2, s])
+            elif type(s) == bs4.element.Tag:
+                res = self.analy_7_expansion(s)
+                ans += res
+        return ans
+
+    def analy_7(self, res, response, item, dom):
+        x1, x2 = item[1: 3]
+        info_list_1 = dom.xpath(x1)
+        if len(info_list_1) == 0:
+            return res
+        for sub_info in info_list_1:
+            l = sub_info.xpath('td')
+            if len(l) % 2 == 1:
+                l = l[:-1]
+            for i in range(0, len(l), 2):
+                k_dom = self.str2dom(etree.tostring(l[i]))
+                key = k_dom.text.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
+                v_dom = self.str2dom(etree.tostring(l[i + 1]))
+                value = v_dom.text.strip()
+                res[key] = (value, l[i])
+
+
+
+        info_list_2 = dom.xpath(x2)
+        all_info = ''
+        all_text = []
+        for s in info_list_2:
+            all_info += self.str2dom(etree.tostring(s)).text
+            all_text += self.analy_7_expansion(self.str2dom(etree.tostring(s)))
+        res['all_info'] = (all_info, info_list_2)
+        last_key = None
+        last_text = ''
+        for sub_text in all_text:
+            if sub_text[0] == 1:
+                if last_key is not None and last_text != '':
+                    key = last_key
+                    key = key.replace(u'：', '').strip().replace(' ', '').replace(':', '').replace(u'\xa0', '').replace(u'　', '')
+                    res[key] = (last_text, None)
+                last_text = ''
+                last_key = sub_text[1]
+            else:
+                last_text += sub_text[1]
+        if 'page' in res:
+            del res['page']
+        res_output = {k: v[0] for k, v in res.iteritems()}
+        logging.error('get json\t' + json.dumps(res_output, ensure_ascii=False).encode('utf8'))
+        res['page'] = (response.body, dom)
+        return res
 
